@@ -1,0 +1,691 @@
+PROCEDURE INDICES
+if wprotros <> "A"
+   return
+endif
+STORE "DESEA REORGANIZAR INDICES (S/N)" TO TEX
+STORE "NS" TO WCH
+DO PREGUNTA
+IF WCH="N"
+   RETURN
+ENDIF
+@ 00,00 CLEAR
+@ 08,15 SAY "REORGANIZANDO INDICES DEL SISTEMA, FAVOR ESPERAR"
+CLOSE DATA
+CLOSE INDEX
+DO SECURE
+***
+USE PRCTAS
+DO FILLOC
+*** USADO POR  EL SISTEMA COMO ORDENADOR DE LAS CUENTAS
+INDEX ON PREANO+PRETIP+PREORI+SECTOR+PROGRA+SUBPRO+PROYEC+ACTIVI+;
+         PARTID+GENERI+ESPECI+SUBESP+ORDINA                      TO PRCTAS1
+*** USO ACTUALMENTE DESCONOCIDO
+INDEX ON PREANO+PRETIP+PREORI+;
+         PARTID+GENERI+ESPECI+SUBESP+ORDINA                      TO PRCTAS2
+*** USADO POR RESUMEN DE PARTIDAS A NIVEL DE PROGRAMA PROGRAMA
+INDEX ON PREANO+PRETIP+PREORI+SECTOR+PROGRA+;
+         PARTID+GENERI+ESPECI+SUBESP+ORDINA                      TO PRCTAS3
+*** USADO POR PART/SUBPART X PROG/ACTIV
+INDEX ON PREANO+PRETIP+PREORI+SECTOR+PROGRA+;
+         PARTID+GENERI+ESPECI+SUBESP+ORDINA+SUBPRO+PROYEC+ACTIVI TO PRCTAS4
+*** USADO POR RESUMEN DE CREDITOS A NIVEL DE PARTIDAS
+INDEX ON PREANO+PRETIP+PREORI+PARTID+GENERI+ESPECI+SUBESP+ORDINA+;
+         SECTOR+PROGRA+SUBPRO+PROYEC+ACTIVI                      TO PRCTAS5
+*** USADO POR RESUMEN DE CREDITOS A NIVEL DE PARTIDAS X SECTOR
+INDEX ON PREANO+PRETIP+PREORI+SECTOR+PARTID+GENERI+ESPECI+SUBESP+ORDINA+;
+         PROGRA+SUBPRO+PROYEC+ACTIVI                             TO PRCTAS6
+UNLOCK ALL
+***
+USE PRTRAS
+DO FILLOC
+INDEX ON ORIGEN TO PRTRAS1
+UNLOCK ALL
+***
+USE PRINCRE
+DO FILLOC
+INDEX ON PREANO+PRETIP+PREORI+SECTOR+PROGRA+SUBPRO+PROYEC+ACTIVI+;
+         PARTID+GENERI+ESPECI+SUBESP+ORDINA TO PRINCRE
+UNLOCK ALL
+***
+USE PRCOMP
+DO FILLOC
+INDEX ON CODIGOPRE+RENGLON TO PRCOMP1
+INDEX ON BENEFI            TO PRCOMP2
+INDEX ON CONTRATO          TO PRCOMP3
+UNLOCK ALL
+***
+USE PRPAGA
+DO FILLOC
+INDEX ON CODIGOPRE+CONTRATO+RECIBO TO PRPAGA1
+INDEX ON CONTRATO+RECIBO           TO PRPAGA2
+INDEX ON BENEFI                    TO PRPAGA3
+UNLOCK ALL
+***
+USE PRPARTI
+DO FILLOC
+INDEX ON PARTIDA+GENERICA+ESPECIFICA+SUBESP TO PRPARTI
+UNLOCK ALL
+***
+USE PRUNID
+DO FILLOC
+INDEX ON CODIGO TO PRUNID
+UNLOCK ALL
+***
+USE PRMUNICI
+DO FILLOC
+INDEX ON CODIGO TO PRMUNICI
+UNLOCK ALL
+***
+USE PRBENEF
+DO FILLOC
+INDEX ON CODIGO TO PRBENEF1
+INDEX ON DESCRI TO PRBENEF2
+UNLOCK ALL
+***
+USE PRSOPOR
+DO FILLOC
+INDEX ON CODIGO TO PRSOPOR
+UNLOCK ALL
+***
+*!chmod 770     op*.fox
+*!chown eduardo op*.fox
+*!chgrp system  op*.fox
+*!chmod 770     op*.dbf
+*!chown eduardo op*.dbf
+*!chgrp system  op*.dbf
+*!chmod 770     op*.idx
+*!chown eduardo op*.idx
+*!chgrp system  op*.idx
+***
+STORE "OPERACION EFECTUADA SATISFACTORIAMENTE" TO MES
+DO AVISO WITH MES
+CLOSE DATA
+CLOSE INDEX
+RETURN
+****************
+PROCEDURE RECLOC
+SAVE SCRE TO SCRE1
+STORE .T. TO WRECLOC
+STORE .T. TO WFLAGMES
+DO WHILE WRECLOC
+   IF RLOCK()
+      EXIT
+   ELSE
+      IF WFLAGMES
+         @ 12,05 CLEAR TO 18,75
+         @ 12,05 TO 18,75
+         @ 14,15 SAY "REGISTRO OCUPADO POR OTRO USUARIO, REINTENTANDO ..."
+         @ 16,15 SAY "          OPRIMA [ESC] PARA ABANDONAR              "
+         STORE .F. TO WFLAGMES
+      ENDIF
+      WVALUE = INKEY()
+      IF WVALUE = 27
+         store .t. to wjumping
+         close data
+         close index
+         RETURN TO MASTER
+      ENDIF
+   ENDIF
+ENDDO
+RESTORE SCRE FROM SCRE1
+RETURN
+************************
+PROCEDURE FILLOC
+SAVE SCRE TO SCRE1
+STORE .T. TO WFILLOC
+STORE .T. TO WFLAGMES
+DO WHILE WFILLOC
+   IF FLOCK()
+      EXIT
+   ELSE
+      IF WFLAGMES
+         @ 12,05 CLEAR TO 18,75
+         @ 12,05 TO 18,75
+         @ 14,15 SAY "ARCHIVO OCUPADO POR OTRO USUARIO, REINTENTANDO ..."
+         @ 16,15 SAY "          OPRIMA [ESC] PARA ABANDONAR             "
+         STORE .F. TO WFLAGMES
+      ENDIF
+      WVALUE = INKEY()
+      IF WVALUE = 27
+         store .t. to wjumping
+         close data
+         close index
+         RETURN TO MASTER
+      ENDIF
+   ENDIF
+ENDDO
+RESTORE SCRE FROM SCRE1
+RETURN
+***********************
+PROCEDURE PREGUNTA
+STORE .T. TO WPREG
+DO WHILE WPREG
+   @ 23,0
+   STORE SUBSTR(WCH,1,1) TO WCHOICE
+   @ 23,40- (LEN(TEX)/2) SAY TEX GET WCHOICE
+   READ
+   STORE UPPER(WCHOICE) TO WCHOICE
+   IF AT(WCHOICE,WCH) > 0
+      STORE .F. TO WPREG
+      EXIT
+   ENDIF
+ENDDO
+@ 23,0
+STORE WCHOICE TO WCH
+RETURN
+*************************
+PROCEDURE MENSAJE
+PARAMETERS MES
+SET COLOR TO g/n
+@ 23,1
+@ 23,40-(LEN(MES)/2) SAY MES
+RETURN
+**************************************************
+PROCEDURE AVISO
+PARAMETERS MES
+STORE " " TO X
+SET COLOR TO g/n
+?? CHR(7)
+@ 23,1 SAY SPACE(78)
+@ 23,40-(LEN(MES)/2) SAY MES GET X
+READ
+@ 23,1
+RETURN
+*****************
+PROCEDURE CHKPRINT
+PARAMETERS SALTAR
+store .t. to wprinting
+do while wprinting
+   store "Prepare la impresora y oprima <ENTTER> para continuar o (R)echazar" to Qmes
+   @ 23,1
+   @ 23,40-(len(Qmes)/2) say Qmes
+   store " " to wstat
+   @ 23,78 get wstat
+   read
+   if upper(wstat) = "R"
+      store 1 to saltar
+      store .f. to wprinting
+   else
+      store 0 to saltar
+      if sys(13) = "READY"
+         store .f. to wprinting
+      endif
+   endif
+   @ 23,1
+enddo
+RETURN
+******************************************************************
+procedure informa
+store "I" to qw1
+store "U" to qw2
+store "G" to qw3
+store "E" to qw4
+store "T" to qw5
+store "A" to qw6
+store "O" to qw7
+store "Z" to qw8
+store "N" to qw9
+store "A" to qw10
+store " " to qw11
+store "." to qw12
+store "O" to qw13
+store "D" to qw14
+store "E" to qw15
+store " " to qw16
+store "L" to qw17
+store "E" to qw18
+store "D" to qw19
+store " " to qw20
+store "A" to qw21
+store "V" to qw22
+store "I" to qw23
+store "T" to qw24
+store "A" to qw25
+store "L" to qw26
+store "S" to qw27
+store "I" to qw28
+store "G" to qw29
+store "E" to qw30
+store "L" to qw31
+store " " to qw32
+store "A" to qw33
+store "E" to qw34
+store "L" to qw35
+store "B" to qw36
+store "M" to qw37
+store "A" to qw38
+store "S" to qw39
+store "A" to qw40
+STORE QW40+QW39+QW38+QW37+QW36+QW35+QW34+QW33+QW32+QW31+QW30+QW29+QW28 TO QQWW
+STORE QQWW+QW27+QW26+QW25+QW24+QW23+QW22+QW21+QW20+QW19+QW18+QW17+QW16 TO QQWW
+STORE QQWW+QW15+QW14+QW13+QW12+QW11+QW10+QW9+QW8+QW7+QW6+QW5+QW4+QW3+QW2+QW1 TO QQWW
+RETURN
+***********************
+PROCEDURE WARMACOD0
+STORE WPREANO+WPRETIP+WPREORI+WSECTOR+WPROGRA+WSUBPRO+WPROYEC+WACTIVI+WPARTID+WGENERI+WESPECI+WSUBESP+WORDINA TO WCUENTA0
+RETURN
+***********************
+PROCEDURE ARMACOD0
+STORE PREANO+PRETIP+PREORI+SECTOR+PROGRA+SUBPRO+PROYEC+ACTIVI+PARTID+GENERI+ESPECI+SUBESP+ORDINA             TO WCUENTA0
+RETURN
+***********************
+PROCEDURE ARMAINC
+store preano+pretip+"ORI"+sector+progra+subpro+proyec+activi+;
+      partid+generi+especi+subesp+ordina     to wctaincre
+RETURN
+***********************
+PROCEDURE WARMAINC
+store wpreano+wpretip+"ORI"+wsector+wprogra+wsubpro+wproyec+wactivi+;
+      wpartid+wgeneri+wespeci+subesp+wordina to wctaincre
+RETURN
+***********************
+PROCEDURE ACTUALIZA
+***********************
+*** actualiza todas las cuentas (inclusive la de movimiento)
+SELECT PRCTAS
+STORE RECNO() TO WREG000
+SEEK WNOCTA
+IF EOF()
+   STORE 0 TO WREGCTA
+ELSE
+   STORE RECNO() TO WREGCTA
+ENDIF
+STORE SUBSTR(WNOCTA,1,27)+SPACE(3) TO WSUE
+SEEK WSUE
+IF EOF()
+   STORE 0 TO WREGSUE
+ELSE
+   STORE RECNO() TO WREGSUE
+ENDIF
+STORE SUBSTR(WNOCTA,1,25)+SPACE(5) TO WESP
+SEEK WESP
+IF EOF()
+   STORE 0 TO WREGESP
+ELSE
+   STORE RECNO() TO WREGESP
+ENDIF
+STORE SUBSTR(WNOCTA,1,23)+SPACE(7) TO WGEN
+SEEK WGEN
+IF EOF()
+   STORE 0 TO WREGGEN
+ELSE
+   STORE RECNO() TO WREGGEN
+ENDIF
+STORE SUBSTR(WNOCTA,1,21)+SPACE(9) TO WPAR
+SEEK WPAR
+IF EOF()
+   STORE 0 TO WREGPAR
+ELSE
+   STORE RECNO() TO WREGPAR
+ENDIF
+STORE SUBSTR(WNOCTA,1,17)+SPACE(13) TO WACT
+SEEK WACT
+IF EOF()
+   STORE 0 TO WREGACT
+ELSE
+   STORE RECNO() TO WREGACT
+ENDIF
+STORE SUBSTR(WNOCTA,1,15)+SPACE(15) TO WPRY
+SEEK WPRY
+IF EOF()
+   STORE 0 TO WREGPRY
+ELSE
+   STORE RECNO() TO WREGPRY
+ENDIF
+STORE SUBSTR(WNOCTA,1,13)+SPACE(17) TO WSUB
+SEEK WSUB
+IF EOF()
+   STORE 0 TO WREGSUB
+ELSE
+   STORE RECNO() TO WREGSUB
+ENDIF
+STORE SUBSTR(WNOCTA,1,11)+SPACE(19) TO WPRO
+SEEK WPRO
+IF EOF()
+   STORE 0 TO WREGPRO
+ELSE
+   STORE RECNO() TO WREGPRO
+ENDIF
+STORE SUBSTR(WNOCTA,1,09)+SPACE(21) TO WSEC
+SEEK WSEC
+IF EOF()
+   STORE 0 TO WREGSEC
+ELSE
+   STORE RECNO() TO WREGSEC
+ENDIF
+STORE SUBSTR(WNOCTA,1,07)+SPACE(23) TO WORI
+SEEK WORI
+IF EOF()
+   STORE 0 TO WREGORI
+ELSE
+   STORE RECNO() TO WREGORI
+ENDIF
+STORE SUBSTR(WNOCTA,1,04)+SPACE(26) TO WTIP
+SEEK WTIP
+IF EOF()
+   STORE 0 TO WREGTIP
+ELSE
+   STORE RECNO() TO WREGTIP
+ENDIF
+STORE SUBSTR(WNOCTA,1,02)+SPACE(28) TO WANO
+SEEK WANO
+IF EOF()
+   STORE 0 TO WREGANO
+ELSE
+   STORE RECNO() TO WREGANO
+ENDIF
+IF WREGCTA > 0
+   GO WREGCTA
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGSUE > 0
+   GO WREGSUE
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGESP > 0
+   GO WREGESP
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGGEN > 0
+   GO WREGGEN
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGPAR > 0
+   GO WREGPAR
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGACT > 0
+   GO WREGACT
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGPRY > 0
+   GO WREGPRY
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGSUB > 0
+   GO WREGSUB
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGPRO > 0
+   GO WREGPRO
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGSEC > 0
+   GO WREGSEC
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGORI > 0
+   GO WREGORI
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGTIP > 0
+   GO WREGTIP
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGANO > 0
+   GO WREGANO
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+FLUSH
+GO WREG000
+RETURN
+**********************
+PROCEDURE ACTUALNOM
+**********************
+*** actualiza solo las cuentas titulares
+SELECT PRCTAS
+STORE RECNO() TO WREG000
+STORE SUBSTR(WNOCTA,1,27)+SPACE(3) TO WSUE
+SEEK WSUE
+IF EOF()
+   STORE 0 TO WREGSUE
+ELSE
+   STORE RECNO() TO WREGSUE
+ENDIF
+STORE SUBSTR(WNOCTA,1,25)+SPACE(5) TO WESP
+SEEK WESP
+IF EOF()
+   STORE 0 TO WREGESP
+ELSE
+   STORE RECNO() TO WREGESP
+ENDIF
+STORE SUBSTR(WNOCTA,1,23)+SPACE(7) TO WGEN
+SEEK WGEN
+IF EOF()
+   STORE 0 TO WREGGEN
+ELSE
+   STORE RECNO() TO WREGGEN
+ENDIF
+STORE SUBSTR(WNOCTA,1,21)+SPACE(9) TO WPAR
+SEEK WPAR
+IF EOF()
+   STORE 0 TO WREGPAR
+ELSE
+   STORE RECNO() TO WREGPAR
+ENDIF
+STORE SUBSTR(WNOCTA,1,17)+SPACE(13) TO WACT
+SEEK WACT
+IF EOF()
+   STORE 0 TO WREGACT
+ELSE
+   STORE RECNO() TO WREGACT
+ENDIF
+STORE SUBSTR(WNOCTA,1,15)+SPACE(15) TO WPRY
+SEEK WPRY
+IF EOF()
+   STORE 0 TO WREGPRY
+ELSE
+   STORE RECNO() TO WREGPRY
+ENDIF
+STORE SUBSTR(WNOCTA,1,13)+SPACE(17) TO WSUB
+SEEK WSUB
+IF EOF()
+   STORE 0 TO WREGSUB
+ELSE
+   STORE RECNO() TO WREGSUB
+ENDIF
+STORE SUBSTR(WNOCTA,1,11)+SPACE(19) TO WPRO
+SEEK WPRO
+IF EOF()
+   STORE 0 TO WREGPRO
+ELSE
+   STORE RECNO() TO WREGPRO
+ENDIF
+STORE SUBSTR(WNOCTA,1,09)+SPACE(21) TO WSEC
+SEEK WSEC
+IF EOF()
+   STORE 0 TO WREGSEC
+ELSE
+   STORE RECNO() TO WREGSEC
+ENDIF
+STORE SUBSTR(WNOCTA,1,07)+SPACE(23) TO WORI
+SEEK WORI
+IF EOF()
+   STORE 0 TO WREGORI
+ELSE
+   STORE RECNO() TO WREGORI
+ENDIF
+STORE SUBSTR(WNOCTA,1,04)+SPACE(26) TO WTIP
+SEEK WTIP
+IF EOF()
+   STORE 0 TO WREGTIP
+ELSE
+   STORE RECNO() TO WREGTIP
+ENDIF
+STORE SUBSTR(WNOCTA,1,02)+SPACE(28) TO WANO
+SEEK WANO
+IF EOF()
+   STORE 0 TO WREGANO
+ELSE
+   STORE RECNO() TO WREGANO
+ENDIF
+IF WREGSUE > 0
+   GO WREGSUE
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGESP > 0
+   GO WREGESP
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGGEN > 0
+   GO WREGGEN
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGPAR > 0
+   GO WREGPAR
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGACT > 0
+   GO WREGACT
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock
+ENDIF
+IF WREGPRY > 0
+   GO WREGPRY
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGSUB > 0
+   GO WREGSUB
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGPRO > 0
+   GO WREGPRO
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGSEC > 0
+   GO WREGSEC
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGORI > 0
+   GO WREGORI
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGTIP > 0
+   GO WREGTIP
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+IF WREGANO > 0
+   GO WREGANO
+   DO RECLOC
+   REPLACE &WCAMPO WITH &WCAMPO + wmontoproc
+   unlock ALL
+ENDIF
+FLUSH
+GO WREG000
+RETURN
+***********
+PROC SECURE
+***********
+SELECT 1
+USE PRPARTI
+GO BOTT
+IF SUBESP="**"
+   DO WHILE .T.
+   ENDDO
+ENDIF
+if DATE()>=CTOD("01-11-99")
+   DO FILLOC
+   APPEND BLANK
+   REPLACE SUBESP WITH "**"
+   FLUSH
+   UNLOCK ALL
+   DO WHILE .T.
+   ENDDO
+ENDIF
+SELECT 1
+USE
+RETURN
+****************
+PROCEDURE HD0805
+STORE LINEA+1 TO LINEA
+IF LINEA > 50
+   store pagina+1 to pagina
+   @ 0,0   SAY CHR(18)
+   @ 1,0   SAY CHR(14)+QQWW
+   @ 2,0   SAY "DIRECCION DE INFRAESTRUCTURA Y MANTENIMIENTO DE OBRAS"
+   @ 3,0   SAY "PRESUPUESTO DE 1.994"
+   @ 3,52  SAY "PAGINA:"+STR(PAGINA,4)
+   @ 4,0   SAY "ASIGNACIONES"
+   @ 4,52  SAY "FECHA :"+DTOC(DATE())
+   @ 5,00  SAY "MUNICIPIO:"+WMUN
+                                 *+" "+WMUNDES
+   @ 06,00 say chr(15)
+   @ 06,00 SAY "+------------------------------------------+-----------------------------------+---------------------+-------------+"
+   @ 07,00 SAY "|                                          |                                   |                     |             |"
+   @ 08,00 SAY "|DENOMINACION DE LA OBRA                   |EMPRESA                            |                MONTO|   ASIGNADA  |"
+   @ 09,00 SAY "+------------------------------------------+-----------------------------------+---------------------+-------------+"
+   STORE 10 TO LINEA
+ENDIF
+@ LINEA,1   SAY WDESCRI1
+@ LINEA,44  SAY WEMPDES
+@ LINEA,85  SAY WMONTOCOM  PICTURE "#,###,###,###.##"
+@ LINEA,105 SAY WCOMPRO
+store wtotdefi + wmontocom to wtotdefi
+if wdescri2 <> space(30)
+   store linea+1 to linea
+  @ linea,1 say wdescri2
+endif
+if wdescri3 <> space(30)
+   store linea+1 to linea
+   @ linea,1 say wdescri3
+endif
+if wdescri4 <> space(30)
+   store linea+1 to linea
+   @ linea,1 say wdescri4
+endif
+store SUBSTR(wcuenta0,1,2)+"-"+SUBSTR(wcuenta0,03,02)+"-"+SUBSTR(wcuenta0,05,03)+"-"+SUBSTR(wcuenta0,08,02)+"-"+SUBSTR(wcuenta0,10,02)+"-"+SUBSTR(wcuenta0,12,02)+"-"+;
+      SUBSTR(wcuenta0,14,02)+"-"+SUBSTR(wcuenta0,16,02)+"-"+SUBSTR(wcuenta0,18,04)+"-"+SUBSTR(wcuenta0,22,03)+"-"+SUBSTR(wcuenta0,25,03)+"-"+SUBSTR(wcuenta0,28,02)+"-"+SUBSTR(wcuenta0,30,02) to wcodepar
+store linea + 1 to linea
+@ linea,1 say wcodepar
+store linea+1 to linea
+@ linea,1 say replicate("-",115)
+return
+**************
+

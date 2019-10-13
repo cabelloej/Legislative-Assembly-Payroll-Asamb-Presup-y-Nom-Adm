@@ -1,0 +1,34 @@
+SAVE SCRE TO SCRE4
+store .t. to wsub4
+do while wsub4
+   RESTORE SCREEN FROM SCRE4
+   @ 09,54 clear to 17,77
+   @ 09,54 to 17,77
+   @ 10,55 PROMPT "GRUPOS DE NOMINAS     "
+   @ 11,55 PROMPT "NOMINAS               "
+   @ 12,55 PROMPT "UBIC. ADMINISTRATIVA  "
+   @ 13,55 PROMPT "CONCEPTOS NOMINALES   "
+   @ 14,55 PROMPT "CARGOS                "
+   @ 15,55 PROMPT "PERSONAL              "
+   @ 16,55 PROMPT "TABLAS DE CODIGOS     "
+   MENU TO WSUBSUB4
+   DO CASE
+   CASE WSUBSUB4 = 1
+        DO AP0401A
+   CASE WSUBSUB4 = 2
+        DO AP0401B
+   CASE WSUBSUB4 = 3
+        DO AP0401C
+   CASE WSUBSUB4 = 4
+        DO AP0401D
+   CASE WSUBSUB4 = 5
+        DO AP0401E
+   CASE WSUBSUB4 = 6
+        DO AP0401F
+   CASE WSUBSUB4 = 7
+        DO AP0401G
+   CASE WSUBSUB4 = 0
+        EXIT
+   ENDCASE
+enddo
+

@@ -1,0 +1,155 @@
+CLOSE DATA
+CLOSE INDEX
+SET DEVI TO SCRE
+SET TALK OFF
+SET ECHO OFF
+SET HELP OFF
+SET SCOREBOARD OFF
+SET ESCAPE OFF
+SET DELIMITER OFF
+SET BELL OFF
+SET STATUS OFF
+SET SAFETY OFF
+SET DELETED ON
+SET CONFIRM OFF
+SET EXACT OFF
+SET UNIQ OFF
+SET DATE ITALIAN
+SET DECIMAL TO 2
+SET EXCLUSIVE OFF
+SET PROCEDURE TO SYSPROC
+
+**** CONTROL DE DOBLE ENTRADA
+STORE SYS(30) TO WUSERCODE
+IF len(rtrim(ltrim(WUSERCODE))) = 0
+   STORE "eduardo" TO WUSERCODE
+ENDIF
+IF UPPER(SUBSTR(OS(),1,5))="XENIX" .OR. UPPER(SUBSTR(OS(),1,4))="UNIX"
+   !who>access
+   use access excl
+   do filloc
+   if .not. flock()
+      unlock all
+      quit
+   endif
+   zap
+   append from access sdf
+   go top
+   count to wcuantos for usercode = WUSERCODE
+   IF WCUANTOS > 1
+      STORE "USUARIO YA REGISTRADO EN EL SERVIDOR, OPRIMA <ENTER>" TO MES
+      DO AVISO WITH MES
+      CLOSE DATA
+      CLOSE INDEX
+      QUIT
+   ENDIF
+   UNLOCK ALL
+   USE
+   *** FIN CONTROL DE DOBLE ENTRADA
+ENDIF
+if date() >= ctod("01-11-99")
+   @ 0,0 clear
+   do while .t.
+   enddo
+endif
+STORE date() TO WFECACT
+STORE "Cargando sistema, favor esperar ..." to T8
+@ 12,40-(len(t8)/2) say t8
+STORE "Instalacion no autorizada" to pppq
+STORE SPACE(40) TO QQWW
+DO INFORMA
+SET COLOR TO W/N/,,
+CLEAR
+SET COLOR TO R+/N
+@ 0,0 TO 3,79 DOUBLE
+@ 5,0 TO 22,79 DOUBLE
+@ 7,1 TO 21,25
+@ 7,26 TO 21,52
+@ 7,53 TO 21,78
+SET COLOR TO G/N
+@ 6,7 SAY "MENU PRINCIPAL"
+@ 6,35 SAY "SUBMENU"
+@ 6,62 SAY "OPCIONES"
+SET COLOR TO G/N
+STORE "SISTEMA DE INFORMACION PARA ADMINISTRACION PUBLICA" TO T1
+STORE "Realizado por CONTROL INFORMATICO, CA                     Telf: 016-884-1162" TO T2
+STORE "ASAMBLEA LEGISLATIVA DEL EDO. ANZOATEGUI" TO T3
+STORE "Fecha: "+DTOC(WFECACT) TO T4
+STORE "Use las flechas para moverse, seleccione con <ENTER>, salga con <ESC>" to T7
+@ 2,63 SAY T4
+@ 2,2 SAY  T1
+@ 4,01 SAY T2
+SET COLOR TO G+/N
+@ 1,2 SAY T3
+STORE .T. TO ILP
+DO WHILE ILP
+   store t7 to mes
+   do mensaje with mes
+   store 0 to ppp
+   if qqww<>t3
+       store 1 to ppp
+    endif
+    STORE "PRESUPUESTO            " TO X_1
+    STORE "PERSONAL               " TO X_2
+    STORE "OBRAS PUBLICAS         " TO X_3
+    STORE "BANCOS                 " TO X_4
+    *STORE "COMPRAS                " TO X_5
+    *STORE "BIENES                 " TO X_6
+    *STORE "RECIBOS DE PAGO        " TO X_7
+    *STORE "I.S.L.R.               " TO X_8
+    SET COLOR TO G/N
+    @ 08,2  PROMPT X_1
+    @ 09,2  PROMPT X_2
+    @ 10,2  PROMPT X_3
+    @ 11,2  PROMPT X_4
+    *@ 12,2  PROMPT X_5
+    *@ 13,2  PROMPT X_6
+    *@ 14,2  PROMPT X_7
+    **@ 15,2  PROMPT X_8
+    MENU TO WPRINCIPAL
+    if ppp = 1
+       store pppq to mes
+       do aviso with mes
+       close all
+       quit
+    endif
+    save scre to s1
+    IF PPP=1
+       STORE PPQQ TO MES
+       DO AVISO WITH MES
+       CLOSE ALL
+       QUIT
+    ENDIF
+    store .f. to wjumping
+    do case
+       case wprincipal = 1
+            do prmenu
+       case wprincipal = 2
+            do apmenu
+       case wprincipal = 3
+        *   do opmenu
+       case wprincipal = 4
+        *   do bcmenu
+       case wprincipal = 5
+           *do inmenu
+       case wprincipal = 6
+           *do dcmenu
+       case wprincipal = 7
+           *do opmenu
+       case wprincipal = 8
+           *do agmenu
+       case wprincipal = 0
+            store "Desea abandonar el sistema ? (S/N)" to tex
+            STORE "NS" TO WCH
+            DO PREGUNTA
+            IF WCH = "N"
+               LOOP
+            ENDIF
+            UNLOCK ALL
+            CLOSE DATA
+            CLOSE INDEX
+            QUIT
+   endcase
+   restore scre from s1
+enddo
+

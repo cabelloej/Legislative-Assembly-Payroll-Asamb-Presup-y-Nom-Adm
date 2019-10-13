@@ -1,0 +1,22 @@
+SAVE SCRE TO SCRE4
+store .t. to wsub4
+do while wsub4
+   RESTORE SCREEN FROM SCRE4
+   @ 14,54 clear to 18,77
+   @ 14,54 to 18,77
+   @ 15,55 PROMPT "AHORRO HABITACIONAL   "
+   @ 16,55 PROMPT "CAJA DE AHORROS       "
+   @ 17,55 PROMPT "FONDO DE JUBILACION   "
+   MENU TO WSUBSUB4
+   DO CASE
+   CASE WSUBSUB4 = 1
+        DO AP0406A
+   CASE WSUBSUB4 = 2
+        DO AP0406B
+   CASE WSUBSUB4 = 3
+        DO AP0406C
+   CASE WSUBSUB4 = 0
+        EXIT
+   ENDCASE
+enddo
+
